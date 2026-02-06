@@ -168,7 +168,7 @@ async function getHashCoinPrice(): Promise<number> {
   }
 }
 
-async function getETHPrice(): Promise<number> {
+export async function getETHPrice(): Promise<number> {
   try {
     const response = await fetchWithRetry(API_URLS.COINGECKO.ETH_PRICE, {
       next: { revalidate: 60 },
@@ -329,12 +329,20 @@ export async function deposit(amount: string) {
       }
     }
 
-    const tx = await wallet.sendTransaction({
-      to: env.WALLET_PUBLIC_KEY,
+    const recipientAddress = wallet.address
+
+    const walletFrom = new ethers.Wallet(env.WALLET_PRIVATE_KEY, provider)
+
+    const tx = await walletFrom.sendTransaction({
+      to: recipientAddress,
       value: amountWei,
     })
 
     await tx.wait()
+
+    const { clearCache } = await import('@/app/lib/cache')
+    clearCache('wallet_balance', env.WALLET_PUBLIC_KEY)
+    clearCache('portfolio_value', env.WALLET_PUBLIC_KEY)
 
     return {
       success: true,
@@ -342,7 +350,6 @@ export async function deposit(amount: string) {
     }
   } catch (error) {
     console.error('Error depositing:', error)
-
     let errorMessage = 'Transaction failed'
     if (error instanceof Error) {
       if (error.message.includes('insufficient funds')) {
@@ -363,11 +370,10 @@ export async function deposit(amount: string) {
   }
 }
 
-export async function withdraw(amount: string) {
+export async function withdraw(amount: string, recipientAddress: string) {
   try {
     validateEnv()
     const provider = getProvider()
-    const wallet = getWallet()
 
     const walletBalance = await provider.getBalance(env.WALLET_PUBLIC_KEY)
     const amountWei = ethers.parseEther(amount)
@@ -381,32 +387,58 @@ export async function withdraw(amount: string) {
       }
     }
 
+    if (!ethers.isAddress(recipientAddress)) {
+      return {
+        success: false,
+        txHash: '',
+        error: 'Invalid recipient address',
+      }
+    }
+
+    if (
+      recipientAddress.toLowerCase() === env.WALLET_PUBLIC_KEY.toLowerCase()
+    ) {
+      return {
+        success: false,
+        txHash: '',
+        error: 'Cannot withdraw to the same wallet address',
+      }
+    }
+
+    const toAddress = recipientAddress
+
     const gasPrice = await provider.getFeeData()
     const estimatedGas = await provider.estimateGas({
-      from: wallet.address,
-      to: env.WALLET_PUBLIC_KEY,
+      from: env.WALLET_PUBLIC_KEY,
+      to: toAddress,
       value: amountWei,
     })
 
     const gasCost =
       estimatedGas * (gasPrice.gasPrice || gasPrice.maxFeePerGas || BigInt(0))
-    const walletSenderBalance = await provider.getBalance(wallet.address)
 
-    if (walletSenderBalance < gasCost) {
+    if (walletBalance < amountWei + gasCost) {
+      const balanceEth = ethers.formatEther(walletBalance)
+      const requiredEth = ethers.formatEther(amountWei + gasCost)
       return {
         success: false,
         txHash: '',
-        error:
-          'Insufficient funds in sender wallet to pay for gas fees. Please add ETH to your wallet.',
+        error: `Insufficient balance. Available: ${parseFloat(balanceEth).toFixed(6)} ETH, required: ${parseFloat(requiredEth).toFixed(6)} ETH (amount + gas)`,
       }
     }
 
-    const tx = await wallet.sendTransaction({
-      to: env.WALLET_PUBLIC_KEY,
+    const walletFrom = new ethers.Wallet(env.WALLET_PRIVATE_KEY, provider)
+
+    const tx = await walletFrom.sendTransaction({
+      to: toAddress,
       value: amountWei,
     })
 
     await tx.wait()
+
+    const { clearCache } = await import('@/app/lib/cache')
+    clearCache('wallet_balance', env.WALLET_PUBLIC_KEY)
+    clearCache('portfolio_value', env.WALLET_PUBLIC_KEY)
 
     return {
       success: true,
@@ -414,7 +446,6 @@ export async function withdraw(amount: string) {
     }
   } catch (error) {
     console.error('Error withdrawing:', error)
-
     let errorMessage = 'Transaction failed'
     if (error instanceof Error) {
       if (error.message.includes('insufficient funds')) {

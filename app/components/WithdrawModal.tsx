@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createPortal } from 'react-dom'
 import { withdraw, getETHBalance } from '@/app/actions/utils'
 import { useRouter } from 'next/navigation'
 import WithdrawModalHeader from './WithdrawModalHeader'
@@ -15,6 +14,7 @@ interface WithdrawModalProps {
 
 export default function WithdrawModal({ isOpen, onClose }: WithdrawModalProps) {
   const [amount, setAmount] = useState('')
+  const [recipientAddress, setRecipientAddress] = useState('')
   const [balance, setBalance] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [isCheckingBalance, setIsCheckingBalance] = useState(false)
@@ -26,6 +26,12 @@ export default function WithdrawModal({ isOpen, onClose }: WithdrawModalProps) {
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  useEffect(() => {
+    if (isOpen && !mounted) {
+      setMounted(true)
+    }
+  }, [isOpen, mounted])
 
   useEffect(() => {
     if (isOpen) {
@@ -49,8 +55,7 @@ export default function WithdrawModal({ isOpen, onClose }: WithdrawModalProps) {
     try {
       const ethBalance = await getETHBalance()
       setBalance(ethBalance)
-    } catch (err) {
-      console.error('Error checking balance:', err)
+    } catch {
       setError('Failed to fetch balance')
     } finally {
       setIsCheckingBalance(false)
@@ -72,15 +77,20 @@ export default function WithdrawModal({ isOpen, onClose }: WithdrawModalProps) {
       return
     }
 
+    if (!recipientAddress) {
+      setError('Please enter recipient address')
+      return
+    }
+
     setIsLoading(true)
 
     try {
-      const result = await withdraw(amount)
+      const result = await withdraw(amount, recipientAddress)
 
       if (result.success) {
         setTxHash(result.txHash)
+        router.refresh()
         setTimeout(() => {
-          router.refresh()
           onClose()
           setAmount('')
           setTxHash(null)
@@ -99,25 +109,72 @@ export default function WithdrawModal({ isOpen, onClose }: WithdrawModalProps) {
   const handleClose = () => {
     if (!isLoading) {
       setAmount('')
+      setRecipientAddress('')
       setError(null)
       setTxHash(null)
       onClose()
     }
   }
 
-  if (!mounted || !isOpen) {
+  if (!isOpen) {
     return null
   }
 
-  return createPortal(
-    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
+  if (!mounted) {
+    if (isOpen && typeof window !== 'undefined') {
+      setTimeout(() => setMounted(true), 0)
+    }
+    return null
+  }
+
+  const portalElement = (
+    <div
+      className="fixed inset-0 flex items-center justify-center p-4"
+      style={{
+        zIndex: 99999,
+        position: 'fixed',
+        display: 'flex',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        width: '100%',
+        height: '100%',
+        pointerEvents: 'auto',
+      }}
+    >
       <div
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm"
         onClick={handleClose}
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          width: '100%',
+          height: '100%',
+          backgroundColor: 'rgba(0, 0, 0, 0.6)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          zIndex: 99998,
+          pointerEvents: 'auto',
+        }}
       />
       <div
-        className="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto"
         onClick={e => e.stopPropagation()}
+        style={{
+          position: 'relative',
+          backgroundColor: '#ffffff',
+          borderRadius: '16px',
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+          maxWidth: '32rem',
+          width: '100%',
+          padding: '32px',
+          maxHeight: '90vh',
+          overflowY: 'auto',
+          zIndex: 99999,
+          pointerEvents: 'auto',
+        }}
       >
         <WithdrawModalHeader onClose={handleClose} isLoading={isLoading} />
         <WithdrawBalanceDisplay
@@ -127,17 +184,24 @@ export default function WithdrawModal({ isOpen, onClose }: WithdrawModalProps) {
         {!isCheckingBalance && (
           <WithdrawForm
             amount={amount}
+            recipientAddress={recipientAddress}
             balance={balance}
             isLoading={isLoading}
             error={error}
             txHash={txHash}
             onAmountChange={setAmount}
+            onRecipientAddressChange={setRecipientAddress}
             onSubmit={handleSubmit}
             onClose={handleClose}
           />
         )}
       </div>
-    </div>,
-    document.body
+    </div>
   )
+
+  if (typeof window === 'undefined') {
+    return null
+  }
+
+  return portalElement
 }

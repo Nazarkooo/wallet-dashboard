@@ -334,6 +334,9 @@ a {
   background-color: #ff5100;
   border: none;
   cursor: pointer;
+  pointer-events: auto;
+  position: relative;
+  z-index: 1;
 }
 
 .btn-deposit:hover {
@@ -349,6 +352,9 @@ a {
   background-color: #f8f8f8;
   border: 1px solid #e1e1e1;
   cursor: pointer;
+  pointer-events: auto;
+  position: relative;
+  z-index: 1;
 }
 
 .btn-withdraw:hover {

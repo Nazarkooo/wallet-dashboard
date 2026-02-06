@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createPortal } from 'react-dom'
 import { deposit } from '@/app/actions/utils'
 import { useRouter } from 'next/navigation'
 import CloseIcon from './icons/CloseIcon'
@@ -22,6 +21,12 @@ export default function DepositModal({ isOpen, onClose }: DepositModalProps) {
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  useEffect(() => {
+    if (isOpen && !mounted) {
+      setMounted(true)
+    }
+  }, [isOpen, mounted])
 
   useEffect(() => {
     if (isOpen) {
@@ -51,8 +56,8 @@ export default function DepositModal({ isOpen, onClose }: DepositModalProps) {
 
       if (result.success) {
         setTxHash(result.txHash)
+        router.refresh()
         setTimeout(() => {
-          router.refresh()
           onClose()
           setAmount('')
           setTxHash(null)
@@ -76,40 +81,90 @@ export default function DepositModal({ isOpen, onClose }: DepositModalProps) {
     }
   }
 
-  if (!mounted || !isOpen) {
+  if (!isOpen) {
+    return null
+  }
+
+  if (typeof window === 'undefined') {
+    return null
+  }
+
+  if (!mounted) {
+    if (isOpen && typeof window !== 'undefined') {
+      setTimeout(() => setMounted(true), 0)
+    }
     return null
   }
 
   const isDepositDisabled = isLoading || !amount || parseFloat(amount) <= 0
 
-  return createPortal(
-    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
+  const portalElement = (
+    <div
+      className="fixed inset-0 flex items-center justify-center p-4"
+      style={{
+        zIndex: 99999,
+        position: 'fixed',
+        display: 'flex',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        width: '100%',
+        height: '100%',
+        pointerEvents: 'auto',
+      }}
+    >
       <div
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm"
         onClick={handleClose}
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          width: '100%',
+          height: '100%',
+          backgroundColor: 'rgba(0, 0, 0, 0.6)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          zIndex: 99998,
+          pointerEvents: 'auto',
+        }}
       />
       <div
-        className="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto"
         onClick={e => e.stopPropagation()}
+        style={{
+          position: 'relative',
+          backgroundColor: '#ffffff',
+          borderRadius: '16px',
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+          maxWidth: '32rem',
+          width: '100%',
+          padding: '32px',
+          maxHeight: '90vh',
+          overflowY: 'auto',
+          zIndex: 99999,
+          pointerEvents: 'auto',
+        }}
       >
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="font-euclid font-semibold text-2xl text-black">
+        <div className="flex items-center justify-between mb-10">
+          <h2 className="font-euclid font-semibold text-3xl text-black">
             Deposit ETH
           </h2>
           <button
             onClick={handleClose}
             disabled={isLoading}
-            className="w-8 h-8 flex items-center justify-center bg-gray-100 rounded border-none cursor-pointer disabled:cursor-not-allowed"
+            className="w-10 h-10 flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded-lg border-none cursor-pointer disabled:cursor-not-allowed transition-colors"
           >
             <CloseIcon />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           <div>
             <label
               htmlFor="amount"
-              className="block font-euclid text-sm text-gray-700 mb-2"
+              className="block font-euclid text-sm font-medium text-gray-700 mb-4"
             >
               Amount (ETH)
             </label>
@@ -118,24 +173,29 @@ export default function DepositModal({ isOpen, onClose }: DepositModalProps) {
               type="number"
               step="0.0001"
               min="0"
-              value={amount}
+              value={amount || ''}
               onChange={e => setAmount(e.target.value)}
               disabled={isLoading}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg font-euclid text-base text-black disabled:opacity-50"
+              style={{
+                border: '2px solid #d1d5db',
+                borderRadius: '12px',
+                padding: '12px 14px',
+              }}
+              className="w-full font-euclid text-base text-black disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-[#FF5100] focus:border-[#FF5100] transition-all mb-[10px]"
               placeholder="0.0"
               required
             />
           </div>
 
           {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+            <div className="p-4 bg-red-50 rounded-xl">
               <p className="font-euclid text-sm text-red-600">{error}</p>
             </div>
           )}
 
           {txHash && (
-            <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-              <p className="font-euclid text-sm text-green-600 mb-1">
+            <div className="p-4 bg-green-50 border-2 border-green-200 rounded-xl">
+              <p className="font-euclid text-sm font-medium text-green-600 mb-2">
                 Transaction successful!
               </p>
               <p className="font-euclid text-xs text-green-500 break-all">
@@ -144,30 +204,85 @@ export default function DepositModal({ isOpen, onClose }: DepositModalProps) {
             </div>
           )}
 
-          <div className="flex gap-3 pt-2">
+          <div className="flex gap-4 mt-8 pt-8">
             <button
               type="button"
               onClick={handleClose}
               disabled={isLoading}
-              className="flex-1 px-4 py-3 bg-gray-100 text-gray-700 rounded-lg font-euclid font-medium border-none cursor-pointer disabled:cursor-not-allowed"
+              style={{
+                flex: '1 1 0',
+                height: '44px',
+                borderRadius: '8px',
+                gap: '8px',
+                padding: '7px 12px',
+                backgroundColor: '#f8f8f8',
+                border: '1px solid #e1e1e1',
+                cursor: isLoading ? 'not-allowed' : 'pointer',
+                fontFamily:
+                  "'Euclid Circular A', Inter, -apple-system, BlinkMacSystemFont, sans-serif",
+                fontWeight: 500,
+                fontSize: '14px',
+                lineHeight: '100%',
+                letterSpacing: '-0.02em',
+                textAlign: 'center',
+                color: '#000000',
+                transition: 'background-color 0.2s',
+              }}
+              onMouseEnter={e => {
+                if (!isLoading) {
+                  e.currentTarget.style.backgroundColor = '#f0f0f0'
+                }
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.backgroundColor = '#f8f8f8'
+              }}
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isDepositDisabled}
-              className={`flex-1 px-4 py-3 text-white rounded-lg font-euclid font-medium border-none ${
-                isDepositDisabled
-                  ? 'bg-[#ffa366] cursor-not-allowed'
-                  : 'bg-[#FF5100] cursor-pointer'
-              }`}
+              style={{
+                flex: '1 1 0',
+                height: '44px',
+                borderRadius: '8px',
+                gap: '8px',
+                padding: '7px 12px',
+                backgroundColor: isDepositDisabled ? '#ffa366' : '#ff5100',
+                border: 'none',
+                cursor: isDepositDisabled ? 'not-allowed' : 'pointer',
+                fontFamily:
+                  "'Euclid Circular A', Inter, -apple-system, BlinkMacSystemFont, sans-serif",
+                fontWeight: 500,
+                fontSize: '14px',
+                lineHeight: '100%',
+                letterSpacing: '-0.02em',
+                textAlign: 'center',
+                color: '#ffffff',
+                transition: 'background-color 0.2s',
+              }}
+              onMouseEnter={e => {
+                if (!isDepositDisabled) {
+                  e.currentTarget.style.backgroundColor = '#ea580c'
+                }
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.backgroundColor = isDepositDisabled
+                  ? '#ffa366'
+                  : '#ff5100'
+              }}
             >
               {isLoading ? 'Processing...' : 'Deposit'}
             </button>
           </div>
         </form>
       </div>
-    </div>,
-    document.body
+    </div>
   )
+
+  if (typeof window === 'undefined') {
+    return null
+  }
+
+  return portalElement
 }
