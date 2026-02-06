@@ -8,9 +8,9 @@ import WithdrawModal from './WithdrawModal'
 import type { WalletCardClientProps } from '@/app/types'
 
 export default function WalletCardClient({
-  usdc,
+  usdt,
   dailyChange,
-  portfolioNotUSDC,
+  portfolioNotUSDT,
   portfolioTotal,
 }: WalletCardClientProps) {
   const [walletName, setWalletName] = useState('My Wallet')
@@ -70,12 +70,12 @@ export default function WalletCardClient({
         </div>
         <div className="flex items-start gap-28 max-[1300px]:flex-col max-[1300px]:gap-4 max-[597px]:w-full">
           <div>
-            <p className="portfolio-label">Portfolio ( Not USDC )</p>
-            <p className="portfolio-value">${portfolioNotUSDC}</p>
+            <p className="portfolio-label">Portfolio ( Not USDT )</p>
+            <p className="portfolio-value">${portfolioNotUSDT}</p>
           </div>
           <div className="portfolio-divider max-[1300px]:hidden" />
           <div className="pl-28 max-[1300px]:pl-0">
-            <p className="portfolio-label mb-4">USDC + Portfolio</p>
+            <p className="portfolio-label mb-4">USDT + Portfolio</p>
             <div className="flex items-center gap-4">
               <img
                 src="/money.svg"
@@ -91,8 +91,8 @@ export default function WalletCardClient({
       </div>
 
       <div className="pb-19">
-        <h3 className="usdc-balance pb-4">
-          <NumberFlow value={usdc} decimals={2} suffix=" USDC" />
+        <h3 className="usdt-balance pb-4">
+          <NumberFlow value={usdt} decimals={2} suffix=" USDT" />
         </h3>
         <div className="flex items-center pt-4 gap-4">
           <span className="daily-change daily-change-green">

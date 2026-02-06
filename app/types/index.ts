@@ -5,8 +5,8 @@ export interface WalletData {
     percentage: string
   }
   portfolio: {
-    notUSDC: string
-    usdcPlusPortfolio: string
+    notUSDT: string
+    usdtPlusPortfolio: string
   }
 }
 
@@ -25,12 +25,12 @@ export interface ChartDataPoint {
 
 export interface WalletBalance {
   balance: string
-  usdc: string
+  usdt: string
 }
 
 export interface PortfolioValue {
-  notUSDC: string
-  usdcPlusPortfolio: string
+  notUSDT: string
+  usdtPlusPortfolio: string
 }
 
 export interface ProfitLoss {
@@ -58,13 +58,14 @@ export interface NumberFlowProps {
 }
 
 export interface WalletCardClientProps {
-  usdc: string
+  usdt: string
   dailyChange: {
     amount: string
     percentage: string
   }
-  portfolioNotUSDC: string
+  portfolioNotUSDT: string
   portfolioTotal: string
+  error?: string
 }
 
 export interface ProfitLossCardClientProps {

@@ -17,10 +17,10 @@ export async function getWalletBalance() {
   try {
     const provider = getProvider()
     const balance = await provider.getBalance(env.WALLET_PUBLIC_KEY)
-    const usdcBalance = await getUSDCBalance()
+    const usdtBalance = await getUSDTBalance()
 
-    const previousBalance = parseFloat(usdcBalance) * 0.95
-    const currentBalance = parseFloat(usdcBalance)
+    const previousBalance = parseFloat(usdtBalance) * 0.95
+    const currentBalance = parseFloat(usdtBalance)
     const dailyChange = currentBalance - previousBalance
     const dailyChangePercent =
       previousBalance > 0
@@ -29,7 +29,7 @@ export async function getWalletBalance() {
 
     return {
       balance: ethers.formatEther(balance),
-      usdc: usdcBalance,
+      usdt: usdtBalance,
       dailyChange: {
         amount:
           dailyChange > 0
@@ -42,7 +42,7 @@ export async function getWalletBalance() {
     console.error('Error getting wallet balance:', error)
     return {
       balance: '0',
-      usdc: '0',
+      usdt: '0',
       dailyChange: {
         amount: '+$0.00',
         percentage: '0.0%',
@@ -51,20 +51,20 @@ export async function getWalletBalance() {
   }
 }
 
-async function getUSDCBalance(): Promise<string> {
+async function getUSDTBalance(): Promise<string> {
   try {
-    const usdcAddress = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'
+    const usdtAddress = '0xdAC17F958D2ee523a2206206994597C13D831ec7'
     const provider = getProvider()
-    const usdcAbi = [
+    const usdtAbi = [
       'function balanceOf(address owner) view returns (uint256)',
       'function decimals() view returns (uint8)',
     ]
-    const usdcContract = new ethers.Contract(usdcAddress, usdcAbi, provider)
-    const balance = await usdcContract.balanceOf(env.WALLET_PUBLIC_KEY)
-    const decimals = await usdcContract.decimals()
+    const usdtContract = new ethers.Contract(usdtAddress, usdtAbi, provider)
+    const balance = await usdtContract.balanceOf(env.WALLET_PUBLIC_KEY)
+    const decimals = await usdtContract.decimals()
     return ethers.formatUnits(balance, decimals)
   } catch (error) {
-    console.error('Error getting USDC balance:', error)
+    console.error('Error getting USDT balance:', error)
     return '0'
   }
 }
@@ -74,24 +74,24 @@ export async function getPortfolioValue() {
     const provider = getProvider()
     const hashCoinBalance = await getHashCoinBalance()
     const hashCoinPrice = await getHashCoinPrice()
-    const notUSDC = (parseFloat(hashCoinBalance) * hashCoinPrice).toFixed(2)
+    const notUSDT = (parseFloat(hashCoinBalance) * hashCoinPrice).toFixed(2)
 
-    const usdcBalance = await getUSDCBalance()
+    const usdtBalance = await getUSDTBalance()
     const ethBalance = await provider.getBalance(env.WALLET_PUBLIC_KEY)
     const ethPrice = await getETHPrice()
     const totalBalance =
-      parseFloat(usdcBalance) +
+      parseFloat(usdtBalance) +
       parseFloat(ethers.formatEther(ethBalance)) * ethPrice +
-      parseFloat(notUSDC)
-    const usdcPlusPortfolio = totalBalance.toFixed(2)
+      parseFloat(notUSDT)
+    const usdtPlusPortfolio = totalBalance.toFixed(2)
 
     return {
-      notUSDC,
-      usdcPlusPortfolio,
+      notUSDT,
+      usdtPlusPortfolio,
     }
   } catch (error) {
     console.error('Error getting portfolio value:', error)
-    return { notUSDC: '0', usdcPlusPortfolio: '0' }
+    return { notUSDT: '0', usdtPlusPortfolio: '0' }
   }
 }
 
