@@ -3,11 +3,11 @@
 import { validateEnv, env } from '@/app/lib/env'
 import { getProvider, getWallet } from '@/app/lib/ethers'
 import { getCachedData, setCachedData } from '@/app/lib/cache'
-import { API_URLS } from '@/app/lib/urls'
 import {
   timeframeMapSeconds,
   timeframeMapMilliseconds,
 } from '@/app/lib/timeframe'
+import { API_URLS } from '@/app/lib/urls'
 import { ethers } from 'ethers'
 import type { ChartDataPoint } from '@/app/types'
 
@@ -48,6 +48,17 @@ export async function getWalletBalance() {
         percentage: '0.0%',
       },
     }
+  }
+}
+
+export async function getETHBalance(): Promise<string> {
+  try {
+    const provider = getProvider()
+    const balance = await provider.getBalance(env.WALLET_PUBLIC_KEY)
+    return ethers.formatEther(balance)
+  } catch (error) {
+    console.error('Error getting ETH balance:', error)
+    return '0'
   }
 }
 
@@ -117,10 +128,36 @@ async function getHashCoinBalance(): Promise<string> {
   }
 }
 
+async function fetchWithRetry(
+  url: string,
+  options: RequestInit = {},
+  maxRetries = 3,
+  delay = 1000
+): Promise<Response> {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      const response = await fetch(url, options)
+      if (response.ok) {
+        return response
+      }
+      if (i < maxRetries - 1) {
+        await new Promise(resolve => setTimeout(resolve, delay * (i + 1)))
+      }
+    } catch (error) {
+      if (i === maxRetries - 1) {
+        throw error
+      }
+      await new Promise(resolve => setTimeout(resolve, delay * (i + 1)))
+    }
+  }
+  throw new Error('Max retries exceeded')
+}
+
 async function getHashCoinPrice(): Promise<number> {
   try {
-    const response = await fetch(
-      API_URLS.COINGECKO.TOKEN_PRICE(env.HASH_COIN_ADDRESS)
+    const response = await fetchWithRetry(
+      API_URLS.COINGECKO.TOKEN_PRICE(env.HASH_COIN_ADDRESS),
+      { next: { revalidate: 60 } }
     )
     const data = await response.json()
     const address = env.HASH_COIN_ADDRESS.toLowerCase()
@@ -133,7 +170,9 @@ async function getHashCoinPrice(): Promise<number> {
 
 async function getETHPrice(): Promise<number> {
   try {
-    const response = await fetch(API_URLS.COINGECKO.ETH_PRICE)
+    const response = await fetchWithRetry(API_URLS.COINGECKO.ETH_PRICE, {
+      next: { revalidate: 60 },
+    })
     const data = await response.json()
     return data.ethereum?.usd || 0
   } catch (error) {
@@ -186,17 +225,18 @@ export async function getChartData(
       startBlock = Math.max(0, currentBlock - blocksAgo)
     }
 
-    const response = await fetch(
+    const response = await fetchWithRetry(
       API_URLS.ETHERSCAN.TRANSACTIONS(
         env.WALLET_PUBLIC_KEY,
         startBlock,
         env.ETHERSCAN_API_KEY
-      )
+      ),
+      { next: { revalidate: 60 } }
     )
     const data = await response.json()
 
     if (data.status !== '1' || !data.result) {
-      return generateMockChartData(timeframe, true)
+      return generateMockChartData(timeframe)
     }
 
     const transactions = data.result
@@ -220,26 +260,22 @@ export async function getChartData(
         date: new Date(parseInt(tx.timeStamp) * 1000).toISOString(),
         value: Math.max(0, currentValue),
         timestamp: parseInt(tx.timeStamp),
-        isMock: false,
       })
     }
 
     if (chartData.length === 0) {
-      return generateMockChartData(timeframe, true)
+      return generateMockChartData(timeframe)
     }
 
     setCachedData(cacheKey, env.WALLET_PUBLIC_KEY, chartData)
     return chartData
   } catch (error) {
     console.error('Error getting chart data:', error)
-    return generateMockChartData(timeframe, true)
+    return generateMockChartData(timeframe)
   }
 }
 
-function generateMockChartData(
-  timeframe: string,
-  isMock: boolean = true
-): ChartDataPoint[] {
+function generateMockChartData(timeframe: string): ChartDataPoint[] {
   const now = Date.now()
   const points = 20
 
@@ -257,7 +293,6 @@ function generateMockChartData(
       date: new Date(timestamp).toISOString(),
       value,
       timestamp: Math.floor(timestamp / 1000),
-      isMock: isMock,
     })
   }
 
@@ -268,9 +303,35 @@ export async function deposit(amount: string) {
   try {
     validateEnv()
     const wallet = getWallet()
+    const provider = getProvider()
+
+    const walletBalance = await provider.getBalance(wallet.address)
+    const amountWei = ethers.parseEther(amount)
+
+    const gasPrice = await provider.getFeeData()
+    const estimatedGas = await provider.estimateGas({
+      from: wallet.address,
+      to: env.WALLET_PUBLIC_KEY,
+      value: amountWei,
+    })
+
+    const gasCost =
+      estimatedGas * (gasPrice.gasPrice || gasPrice.maxFeePerGas || BigInt(0))
+    const totalRequired = amountWei + gasCost
+
+    if (walletBalance < totalRequired) {
+      const balanceEth = ethers.formatEther(walletBalance)
+      const requiredEth = ethers.formatEther(totalRequired)
+      return {
+        success: false,
+        txHash: '',
+        error: `Insufficient funds. Your wallet has ${parseFloat(balanceEth).toFixed(6)} ETH, but ${parseFloat(requiredEth).toFixed(6)} ETH is required (amount + gas fees).`,
+      }
+    }
+
     const tx = await wallet.sendTransaction({
       to: env.WALLET_PUBLIC_KEY,
-      value: ethers.parseEther(amount),
+      value: amountWei,
     })
 
     await tx.wait()
@@ -281,10 +342,23 @@ export async function deposit(amount: string) {
     }
   } catch (error) {
     console.error('Error depositing:', error)
+
+    let errorMessage = 'Transaction failed'
+    if (error instanceof Error) {
+      if (error.message.includes('insufficient funds')) {
+        errorMessage =
+          'Insufficient funds in your wallet. Please ensure you have enough ETH to cover the amount and gas fees.'
+      } else if (error.message.includes('user rejected')) {
+        errorMessage = 'Transaction was cancelled'
+      } else {
+        errorMessage = error.message
+      }
+    }
+
     return {
       success: false,
       txHash: '',
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: errorMessage,
     }
   }
 }
@@ -292,21 +366,44 @@ export async function deposit(amount: string) {
 export async function withdraw(amount: string) {
   try {
     validateEnv()
-    const wallet = getWallet()
     const provider = getProvider()
-    const balance = await provider.getBalance(wallet.address)
+    const wallet = getWallet()
 
-    if (balance < ethers.parseEther(amount)) {
+    const walletBalance = await provider.getBalance(env.WALLET_PUBLIC_KEY)
+    const amountWei = ethers.parseEther(amount)
+
+    if (walletBalance < amountWei) {
+      const balanceEth = ethers.formatEther(walletBalance)
       return {
         success: false,
         txHash: '',
-        error: 'Insufficient balance',
+        error: `Insufficient balance. Available: ${parseFloat(balanceEth).toFixed(6)} ETH, requested: ${amount} ETH`,
+      }
+    }
+
+    const gasPrice = await provider.getFeeData()
+    const estimatedGas = await provider.estimateGas({
+      from: wallet.address,
+      to: env.WALLET_PUBLIC_KEY,
+      value: amountWei,
+    })
+
+    const gasCost =
+      estimatedGas * (gasPrice.gasPrice || gasPrice.maxFeePerGas || BigInt(0))
+    const walletSenderBalance = await provider.getBalance(wallet.address)
+
+    if (walletSenderBalance < gasCost) {
+      return {
+        success: false,
+        txHash: '',
+        error:
+          'Insufficient funds in sender wallet to pay for gas fees. Please add ETH to your wallet.',
       }
     }
 
     const tx = await wallet.sendTransaction({
       to: env.WALLET_PUBLIC_KEY,
-      value: ethers.parseEther(amount),
+      value: amountWei,
     })
 
     await tx.wait()
@@ -317,10 +414,23 @@ export async function withdraw(amount: string) {
     }
   } catch (error) {
     console.error('Error withdrawing:', error)
+
+    let errorMessage = 'Transaction failed'
+    if (error instanceof Error) {
+      if (error.message.includes('insufficient funds')) {
+        errorMessage =
+          'Insufficient funds. Please ensure you have enough ETH to cover the amount and gas fees.'
+      } else if (error.message.includes('user rejected')) {
+        errorMessage = 'Transaction was cancelled'
+      } else {
+        errorMessage = error.message
+      }
+    }
+
     return {
       success: false,
       txHash: '',
-      error: error instanceof Error ? error.message : 'Unknown error',
+      error: errorMessage,
     }
   }
 }

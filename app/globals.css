@@ -1,26 +1,433 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 * {
   box-sizing: border-box;
   padding: 0;
   margin: 0;
 }
 
-html,
-body {
+html {
   max-width: 100vw;
   overflow-x: hidden;
+  background-color: #ffffff;
 }
 
 body {
-  color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
+  max-width: 100vw;
+  overflow-x: hidden;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu',
+    'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #ffffff;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
 }
 
 a {
   color: inherit;
   text-decoration: none;
+}
+
+.wallet-card {
+  width: 100%;
+  max-width: 639px;
+  min-width: 0;
+  height: 235px;
+  border-radius: 8px;
+  padding: 20px;
+  background-color: #ffffff;
+  flex-shrink: 0;
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  overflow: visible;
+}
+
+@media (max-width: 1334px) {
+  .wallet-card {
+    height: 300px;
+  }
+}
+
+@media (max-width: 950px) {
+  .wallet-card {
+    height: 312px !important;
+  }
+
+  .profit-loss-card {
+    height: 312px !important;
+  }
+}
+
+@media (max-width: 597px) {
+  .wallet-card {
+    height: 380px !important;
+  }
+
+  .profit-loss-card {
+    height: 380px !important;
+  }
+}
+
+@media (max-width: 603px) {
+  .profit-loss-card {
+    overflow-x: auto !important;
+    overflow-y: visible !important;
+  }
+}
+
+@media (max-width: 557px) {
+  .wallet-card {
+    width: 340px !important;
+    max-width: 340px !important;
+  }
+
+  .profit-loss-card {
+    width: 340px !important;
+    max-width: 340px !important;
+    overflow-x: auto !important;
+    overflow-y: visible !important;
+  }
+
+  .portfolio-label,
+  .portfolio-value {
+    text-align: left !important;
+  }
+
+  .pl-28 {
+    padding-left: 0 !important;
+  }
+
+  .btn-deposit,
+  .btn-withdraw {
+    min-width: 0;
+    flex: 1 1 0;
+    padding: 7px 6px !important;
+    gap: 4px !important;
+  }
+
+  .btn-deposit img,
+  .btn-withdraw img {
+    width: 20px !important;
+    height: 20px !important;
+  }
+
+  .btn-text-white,
+  .btn-text-black {
+    font-size: 12px !important;
+  }
+
+  .gap-8 {
+    gap: 6px !important;
+  }
+}
+
+@media (max-width: 401px) {
+  .wallet-card {
+    width: calc(100% - 8px) !important;
+    max-width: none !important;
+    min-width: 280px !important;
+    min-height: 290px !important;
+    height: auto !important;
+    overflow-x: auto !important;
+    overflow-y: visible !important;
+    position: relative !important;
+    z-index: 1;
+  }
+
+  .profit-loss-card {
+    width: calc(100% - 8px) !important;
+    max-width: none !important;
+    min-width: 280px !important;
+    height: 380px !important;
+    overflow-x: auto !important;
+    overflow-y: visible !important;
+    position: relative !important;
+    z-index: 1;
+  }
+}
+
+@media (max-width: 390px) {
+  .wallet-card {
+    width: calc(100% - 8px) !important;
+    max-width: none !important;
+    min-width: 280px !important;
+  }
+
+  .profit-loss-card {
+    width: calc(100% - 8px) !important;
+    max-width: none !important;
+    min-width: 280px !important;
+  }
+}
+
+.wallet-header {
+  padding-bottom: 20px;
+}
+
+.wallet-icon-wrapper {
+  display: flex;
+  align-items: center;
+  margin-top: -20px;
+}
+
+.wallet-text-container {
+  padding-left: 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+.wallet-title {
+  font-family:
+    'Euclid Circular A',
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
+  font-weight: 600;
+  font-size: 16px;
+  line-height: 100%;
+  letter-spacing: -0.02em;
+  text-align: center;
+  vertical-align: middle;
+  color: #000000;
+  margin: 0;
+  padding-right: 4px;
+}
+
+.wallet-subtitle {
+  font-family:
+    'Euclid Circular A',
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 100%;
+  letter-spacing: -0.02em;
+  text-align: left;
+  vertical-align: middle;
+  color: #868686;
+  margin: 0;
+  margin-top: 4px;
+  padding-bottom: 19px;
+}
+
+.wallet-input {
+  font-family:
+    'Euclid Circular A',
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
+  font-weight: 600;
+  font-size: 16px;
+  line-height: 100%;
+  letter-spacing: -0.02em;
+  text-align: left;
+  vertical-align: middle;
+  color: #000000;
+  border: none;
+  outline: none;
+  background: transparent;
+}
+
+.portfolio-label {
+  font-family:
+    'Euclid Circular A',
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 100%;
+  letter-spacing: -0.02em;
+  text-align: left;
+  vertical-align: middle;
+  color: #868686;
+  margin: 0;
+  padding-bottom: 4px;
+}
+
+.portfolio-value {
+  font-family:
+    'Euclid Circular A',
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
+  font-weight: 500;
+  font-size: 16px;
+  line-height: 100%;
+  letter-spacing: -0.02em;
+  text-align: left;
+  vertical-align: middle;
+  color: #000000;
+  margin: 0;
+}
+
+.portfolio-divider {
+  width: 24px;
+  height: 0px;
+  border: 1px solid #e5e5e5;
+  transform: rotate(-90deg);
+  align-self: center;
+}
+
+.usdc-balance {
+  font-family:
+    'Euclid Circular A',
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
+  font-weight: 400;
+  font-size: 40px;
+  line-height: 100%;
+  letter-spacing: -0.02em;
+  text-align: left;
+  vertical-align: middle;
+  color: #000000;
+  margin: 0;
+  padding-bottom: 4px;
+}
+
+.daily-change {
+  font-family:
+    'Euclid Circular A',
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 100%;
+  letter-spacing: -0.02em;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.daily-change-green {
+  color: #3cab68;
+}
+
+.daily-change-label {
+  color: #868686;
+  padding-left: 4px;
+}
+
+.btn-deposit {
+  flex: 1 1 0;
+  height: 44px;
+  border-radius: 8px;
+  gap: 8px;
+  padding: 7px 12px;
+  background-color: #ff5100;
+  border: none;
+  cursor: pointer;
+}
+
+.btn-deposit:hover {
+  background-color: #ea580c;
+}
+
+.btn-withdraw {
+  flex: 1 1 0;
+  height: 44px;
+  border-radius: 8px;
+  gap: 8px;
+  padding: 7px 12px;
+  background-color: #f8f8f8;
+  border: 1px solid #e1e1e1;
+  cursor: pointer;
+}
+
+.btn-withdraw:hover {
+  background-color: #f0f0f0;
+}
+
+.btn-text-white {
+  font-family:
+    'Euclid Circular A',
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 100%;
+  letter-spacing: -0.02em;
+  text-align: center;
+  vertical-align: middle;
+  color: #ffffff;
+}
+
+.btn-text-black {
+  font-family:
+    'Euclid Circular A',
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 100%;
+  letter-spacing: -0.02em;
+  text-align: center;
+  vertical-align: middle;
+  color: #000000;
+}
+
+.gap-28 {
+  gap: 28px;
+}
+
+.gap-4 {
+  gap: 4px;
+}
+
+.gap-8 {
+  gap: 8px;
+}
+
+.pl-28 {
+  padding-left: 28px;
+}
+
+.pb-19 {
+  padding-bottom: 19px;
+}
+
+.pb-4 {
+  padding-bottom: 4px;
+}
+
+.pt-4 {
+  padding-top: 4px;
+}
+
+.mb-4 {
+  margin-bottom: 4px;
+}
+
+.pr-2 {
+  padding-right: 8px;
+}
+
+.font-euclid {
+  font-family:
+    'Euclid Circular A',
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
 }

@@ -3,12 +3,59 @@ import { env, validateEnv } from './env'
 
 validateEnv()
 
-export function getProvider() {
-  return new ethers.JsonRpcProvider('https://eth.llamarpc.com', 'homestead')
+type JsonRpcProviderWithInternals = ethers.JsonRpcProvider & {
+  _networkPromise?: Promise<ethers.Network>
+  _detectNetwork?: () => Promise<ethers.Network>
+}
+
+if (typeof process !== 'undefined' && process.stderr) {
+  const originalWrite = process.stderr.write.bind(process.stderr)
+  process.stderr.write = ((
+    chunk: string | Uint8Array,
+    encoding?: BufferEncoding | ((err?: Error | null) => void),
+    cb?: (err?: Error | null) => void
+  ): boolean => {
+    const message = chunk?.toString() || ''
+    if (
+      message.includes('JsonRpcProvider failed to detect network') ||
+      message.includes('failed to bootstrap network detection')
+    ) {
+      return true
+    }
+    if (typeof encoding === 'function') {
+      return originalWrite(chunk, encoding)
+    }
+    return originalWrite(chunk, encoding, cb)
+  }) as typeof process.stderr.write
+}
+
+let cachedProvider: ethers.JsonRpcProvider | null = null
+
+export function getProvider(): ethers.JsonRpcProvider {
+  if (cachedProvider) {
+    return cachedProvider
+  }
+
+  const rpcUrl = env.RPC_URL
+  const network = ethers.Network.from(env.NETWORK || 'mainnet')
+  const provider = new ethers.JsonRpcProvider(
+    rpcUrl,
+    network
+  ) as JsonRpcProviderWithInternals
+
+  if (provider._networkPromise) {
+    provider._networkPromise = Promise.resolve(network)
+  }
+
+  provider._detectNetwork = async () => network
+  cachedProvider = provider as ethers.JsonRpcProvider
+
+  return provider
 }
 
 export function getEtherscanProvider() {
-  return new ethers.EtherscanProvider('homestead', env.ETHERSCAN_API_KEY)
+  const network = env.NETWORK === 'sepolia' ? 'sepolia' : 'homestead'
+  return new ethers.EtherscanProvider(network, env.ETHERSCAN_API_KEY)
 }
 
 export function getWallet() {

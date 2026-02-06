@@ -3,14 +3,7 @@
 import { useEffect } from 'react'
 import { useMotionValue, useSpring } from 'framer-motion'
 import { motion, useTransform } from 'framer-motion'
-
-interface NumberFlowProps {
-  value: number | string
-  decimals?: number
-  prefix?: string
-  suffix?: string
-  className?: string
-}
+import type { NumberFlowProps } from '@/app/types'
 
 export default function NumberFlow({
   value,
@@ -38,9 +31,9 @@ export default function NumberFlow({
   }, [numValue, motionValue])
 
   return (
-    <span className={className}>
+    <span className={className} style={{ fontWeight: 400 }}>
       {prefix}
-      <motion.span>{displayValue}</motion.span>
+      <motion.span style={{ fontWeight: 400 }}>{displayValue}</motion.span>
       {suffix}
     </span>
   )
