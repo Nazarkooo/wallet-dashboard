@@ -320,6 +320,10 @@ a {
   color: #3cab68;
 }
 
+.daily-change-red {
+  color: #dc2626;
+}
+
 .daily-change-label {
   color: #868686;
   padding-left: 4px;

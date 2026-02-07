@@ -95,7 +95,14 @@ export default function WalletCardClient({
           <NumberFlow value={usdt} decimals={2} suffix=" USDT" />
         </h3>
         <div className="flex items-center pt-4 gap-4">
-          <span className="daily-change daily-change-green">
+          <span
+            className="daily-change"
+            style={{
+              color: dailyChange.percentage.startsWith('-')
+                ? '#dc2626'
+                : '#3cab68',
+            }}
+          >
             {dailyChange.amount}
           </span>
           <img
@@ -104,8 +111,23 @@ export default function WalletCardClient({
             width={12}
             height={12}
             className="w-3 h-3"
+            style={{
+              transform: dailyChange.percentage.startsWith('-')
+                ? 'rotate(180deg)'
+                : 'none',
+              filter: dailyChange.percentage.startsWith('-')
+                ? 'brightness(0) saturate(100%) invert(27%) sepia(95%) saturate(1500%) hue-rotate(340deg) brightness(95%) contrast(90%)'
+                : 'brightness(0) saturate(100%) invert(60%) sepia(90%) saturate(400%) hue-rotate(90deg) brightness(95%) contrast(85%)',
+            }}
           />
-          <span className="daily-change daily-change-green">
+          <span
+            className="daily-change"
+            style={{
+              color: dailyChange.percentage.startsWith('-')
+                ? '#dc2626'
+                : '#3cab68',
+            }}
+          >
             {dailyChange.percentage}
           </span>
           <span className="daily-change daily-change-label">Today</span>
