@@ -1,8 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { deposit } from '@/app/actions/utils'
-import { useRouter } from 'next/navigation'
+import { getDepositAddress } from '@/app/actions/utils'
 import CloseIcon from './icons/CloseIcon'
 
 interface DepositModalProps {
@@ -11,12 +10,10 @@ interface DepositModalProps {
 }
 
 export default function DepositModal({ isOpen, onClose }: DepositModalProps) {
-  const [amount, setAmount] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [txHash, setTxHash] = useState<string | null>(null)
+  const [depositAddress, setDepositAddress] = useState<string | null>(null)
   const [mounted, setMounted] = useState(false)
-  const router = useRouter()
 
   useEffect(() => {
     setMounted(true)
@@ -39,44 +36,35 @@ export default function DepositModal({ isOpen, onClose }: DepositModalProps) {
     }
   }, [isOpen])
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  useEffect(() => {
+    if (!isOpen || !mounted) return
     setError(null)
-    setTxHash(null)
-
-    if (!amount || parseFloat(amount) <= 0) {
-      setError('Please enter a valid amount')
-      return
-    }
-
+    setDepositAddress(null)
     setIsLoading(true)
+    getDepositAddress()
+      .then(result => {
+        if (result.success && result.depositAddress) {
+          setDepositAddress(result.depositAddress)
+        } else {
+          setError(result.error || 'Failed to get deposit address')
+        }
+      })
+      .catch(err => {
+        setError(err instanceof Error ? err.message : 'Unknown error occurred')
+      })
+      .finally(() => setIsLoading(false))
+  }, [isOpen, mounted])
 
-    try {
-      const result = await deposit(amount)
-
-      if (result.success) {
-        setTxHash(result.txHash)
-        router.refresh()
-        setTimeout(() => {
-          onClose()
-          setAmount('')
-          setTxHash(null)
-        }, 2000)
-      } else {
-        setError(result.error || 'Transaction failed')
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error occurred')
-    } finally {
-      setIsLoading(false)
+  const handleCopyAddress = () => {
+    if (depositAddress && typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(depositAddress)
     }
   }
 
   const handleClose = () => {
     if (!isLoading) {
-      setAmount('')
       setError(null)
-      setTxHash(null)
+      setDepositAddress(null)
       onClose()
     }
   }
@@ -95,8 +83,6 @@ export default function DepositModal({ isOpen, onClose }: DepositModalProps) {
     }
     return null
   }
-
-  const isDepositDisabled = isLoading || !amount || parseFloat(amount) <= 0
 
   const portalElement = (
     <div
@@ -160,122 +146,51 @@ export default function DepositModal({ isOpen, onClose }: DepositModalProps) {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-          <div>
-            <label
-              htmlFor="amount"
-              className="block font-euclid text-sm font-medium text-gray-700 mb-4"
-            >
-              Amount (ETH)
-            </label>
-            <input
-              id="amount"
-              type="number"
-              step="0.0001"
-              min="0"
-              value={amount || ''}
-              onChange={e => setAmount(e.target.value)}
-              disabled={isLoading}
-              style={{
-                border: '2px solid #d1d5db',
-                borderRadius: '12px',
-                padding: '12px 14px',
-              }}
-              className="w-full font-euclid text-base text-black disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-[#FF5100] focus:border-[#FF5100] transition-all mb-[10px]"
-              placeholder="0.0"
-              required
-            />
-          </div>
-
+        <div className="flex flex-col gap-6">
           {error && (
             <div className="p-4 bg-red-50 rounded-xl">
               <p className="font-euclid text-sm text-red-600">{error}</p>
             </div>
           )}
 
-          {txHash && (
-            <div className="p-4 bg-green-50 border-2 border-green-200 rounded-xl">
-              <p className="font-euclid text-sm font-medium text-green-600 mb-2">
-                Transaction successful!
+          {isLoading && !depositAddress && (
+            <p className="font-euclid text-sm text-gray-500">Loading...</p>
+          )}
+
+          {depositAddress && (
+            <div className="p-4 bg-gray-50 border-2 border-gray-200 rounded-xl space-y-3">
+              <p className="font-euclid text-sm font-medium text-gray-700">
+                Wallet address for deposits
               </p>
-              <p className="font-euclid text-xs text-green-500 break-all">
-                TX: {txHash}
+              <p
+                className="font-mono text-xs text-gray-800 break-all"
+                style={{ wordBreak: 'break-all' }}
+              >
+                {depositAddress}
               </p>
             </div>
           )}
 
           <div className="flex gap-4 mt-8 pt-8">
+            {depositAddress && (
+              <button
+                type="button"
+                onClick={handleCopyAddress}
+                className="flex-1 h-12 rounded-xl bg-[#FF5100] hover:bg-[#ea580c] font-euclid font-medium text-sm text-white transition-colors"
+              >
+                Copy
+              </button>
+            )}
             <button
               type="button"
               onClick={handleClose}
               disabled={isLoading}
-              style={{
-                flex: '1 1 0',
-                height: '44px',
-                borderRadius: '8px',
-                gap: '8px',
-                padding: '7px 12px',
-                backgroundColor: '#f8f8f8',
-                border: '1px solid #e1e1e1',
-                cursor: isLoading ? 'not-allowed' : 'pointer',
-                fontFamily:
-                  "'Euclid Circular A', Inter, -apple-system, BlinkMacSystemFont, sans-serif",
-                fontWeight: 500,
-                fontSize: '14px',
-                lineHeight: '100%',
-                letterSpacing: '-0.02em',
-                textAlign: 'center',
-                color: '#000000',
-                transition: 'background-color 0.2s',
-              }}
-              onMouseEnter={e => {
-                if (!isLoading) {
-                  e.currentTarget.style.backgroundColor = '#f0f0f0'
-                }
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.backgroundColor = '#f8f8f8'
-              }}
+              className="flex-1 h-12 rounded-xl bg-gray-100 hover:bg-gray-200 border border-gray-200 font-euclid font-medium text-sm text-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isDepositDisabled}
-              style={{
-                flex: '1 1 0',
-                height: '44px',
-                borderRadius: '8px',
-                gap: '8px',
-                padding: '7px 12px',
-                backgroundColor: isDepositDisabled ? '#ffa366' : '#ff5100',
-                border: 'none',
-                cursor: isDepositDisabled ? 'not-allowed' : 'pointer',
-                fontFamily:
-                  "'Euclid Circular A', Inter, -apple-system, BlinkMacSystemFont, sans-serif",
-                fontWeight: 500,
-                fontSize: '14px',
-                lineHeight: '100%',
-                letterSpacing: '-0.02em',
-                textAlign: 'center',
-                color: '#ffffff',
-                transition: 'background-color 0.2s',
-              }}
-              onMouseEnter={e => {
-                if (!isDepositDisabled) {
-                  e.currentTarget.style.backgroundColor = '#ea580c'
-                }
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.backgroundColor = isDepositDisabled
-                  ? '#ffa366'
-                  : '#ff5100'
-              }}
-            >
-              {isLoading ? 'Processing...' : 'Deposit'}
+              Close
             </button>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   )

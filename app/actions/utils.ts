@@ -1,7 +1,7 @@
 'use server'
 
 import { validateEnv, env } from '@/app/lib/env'
-import { getProvider, getWallet } from '@/app/lib/ethers'
+import { getProvider } from '@/app/lib/ethers'
 import { getCachedData, setCachedData } from '@/app/lib/cache'
 import {
   timeframeMapSeconds,
@@ -366,73 +366,20 @@ function generateMockChartData(timeframe: string): ChartDataPoint[] {
   return chartData
 }
 
-export async function deposit(amount: string) {
+export async function getDepositAddress() {
   try {
     validateEnv()
-    const wallet = getWallet()
-    const provider = getProvider()
-
-    const walletBalance = await provider.getBalance(wallet.address)
-    const amountWei = ethers.parseEther(amount)
-
-    const gasPrice = await provider.getFeeData()
-    const estimatedGas = await provider.estimateGas({
-      from: wallet.address,
-      to: env.WALLET_PUBLIC_KEY,
-      value: amountWei,
-    })
-
-    const gasCost =
-      estimatedGas * (gasPrice.gasPrice || gasPrice.maxFeePerGas || BigInt(0))
-    const totalRequired = amountWei + gasCost
-
-    if (walletBalance < totalRequired) {
-      const balanceEth = ethers.formatEther(walletBalance)
-      const requiredEth = ethers.formatEther(totalRequired)
-      return {
-        success: false,
-        txHash: '',
-        error: `Insufficient funds. Your wallet has ${parseFloat(balanceEth).toFixed(6)} ETH, but ${parseFloat(requiredEth).toFixed(6)} ETH is required (amount + gas fees).`,
-      }
-    }
-
-    const recipientAddress = wallet.address
-
-    const walletFrom = new ethers.Wallet(env.WALLET_PRIVATE_KEY, provider)
-
-    const tx = await walletFrom.sendTransaction({
-      to: recipientAddress,
-      value: amountWei,
-    })
-
-    await tx.wait()
-
-    const { clearCache } = await import('@/app/lib/cache')
-    clearCache('wallet_balance', env.WALLET_PUBLIC_KEY)
-    clearCache('portfolio_value', env.WALLET_PUBLIC_KEY)
-
     return {
       success: true,
-      txHash: tx.hash,
+      depositAddress: env.WALLET_PUBLIC_KEY,
+      error: '',
     }
   } catch (error) {
-    console.error('Error depositing:', error)
-    let errorMessage = 'Transaction failed'
-    if (error instanceof Error) {
-      if (error.message.includes('insufficient funds')) {
-        errorMessage =
-          'Insufficient funds in your wallet. Please ensure you have enough ETH to cover the amount and gas fees.'
-      } else if (error.message.includes('user rejected')) {
-        errorMessage = 'Transaction was cancelled'
-      } else {
-        errorMessage = error.message
-      }
-    }
-
+    console.error('Error getting deposit address:', error)
     return {
       success: false,
-      txHash: '',
-      error: errorMessage,
+      depositAddress: '',
+      error: error instanceof Error ? error.message : 'Unknown error',
     }
   }
 }
