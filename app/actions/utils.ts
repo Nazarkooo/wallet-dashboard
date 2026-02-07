@@ -13,6 +13,15 @@ import type { ChartDataPoint } from '@/app/types'
 
 validateEnv()
 
+const USDT_CONTRACT_ADDRESS =
+  '0xdAC17F958D2ee523a2206206994597C13D831ec7'
+
+function isUSDTTokenAddress(address: string): boolean {
+  if (!address) return true
+  const a = address.toLowerCase()
+  return a === USDT_CONTRACT_ADDRESS.toLowerCase()
+}
+
 export async function getWalletBalance() {
   try {
     const provider = getProvider()
@@ -57,13 +66,16 @@ export async function getETHBalance(): Promise<string> {
 
 async function getUSDTBalance(): Promise<string> {
   try {
-    const usdtAddress = '0xdAC17F958D2ee523a2206206994597C13D831ec7'
     const provider = getProvider()
     const usdtAbi = [
       'function balanceOf(address owner) view returns (uint256)',
       'function decimals() view returns (uint8)',
     ]
-    const usdtContract = new ethers.Contract(usdtAddress, usdtAbi, provider)
+    const usdtContract = new ethers.Contract(
+      USDT_CONTRACT_ADDRESS,
+      usdtAbi,
+      provider
+    )
     const balance = await usdtContract.balanceOf(env.WALLET_PUBLIC_KEY)
     const decimals = await usdtContract.decimals()
     return ethers.formatUnits(balance, decimals)
@@ -76,17 +88,19 @@ async function getUSDTBalance(): Promise<string> {
 export async function getPortfolioValue() {
   try {
     const provider = getProvider()
-    const hashCoinBalance = await getHashCoinBalance()
-    const hashCoinPrice = await getHashCoinPrice()
-    const notUSDT = (parseFloat(hashCoinBalance) * hashCoinPrice).toFixed(2)
-
-    const usdtBalance = await getUSDTBalance()
-    const ethBalance = await provider.getBalance(env.WALLET_PUBLIC_KEY)
-    const ethPrice = await getETHPrice()
+    const [hashCoinBalance, hashCoinPrice, usdtBalance, ethBalance, ethPrice] =
+      await Promise.all([
+        getHashCoinBalance(),
+        getHashCoinPrice(),
+        getUSDTBalance(),
+        provider.getBalance(env.WALLET_PUBLIC_KEY),
+        getETHPrice(),
+      ])
+    const ethValue = parseFloat(ethers.formatEther(ethBalance)) * ethPrice
+    const hashCoinValue = parseFloat(hashCoinBalance) * hashCoinPrice
+    const notUSDT = (ethValue + hashCoinValue).toFixed(2)
     const totalBalance =
-      parseFloat(usdtBalance) +
-      parseFloat(ethers.formatEther(ethBalance)) * ethPrice +
-      parseFloat(notUSDT)
+      parseFloat(usdtBalance) + ethValue + hashCoinValue
     const usdtPlusPortfolio = totalBalance.toFixed(2)
 
     return {
@@ -102,6 +116,10 @@ export async function getPortfolioValue() {
 async function getHashCoinBalance(): Promise<string> {
   try {
     if (!env.HASH_COIN_ADDRESS) return '0'
+    if (isUSDTTokenAddress(env.HASH_COIN_ADDRESS))
+      throw new Error(
+        'HASH_COIN_ADDRESS must not be the USDT contract address. USDT is already tracked separately.'
+      )
     const provider = getProvider()
     const tokenAbi = [
       'function balanceOf(address owner) view returns (uint256)',
@@ -148,6 +166,7 @@ async function fetchWithRetry(
 
 async function getHashCoinPrice(): Promise<number> {
   try {
+    if (isUSDTTokenAddress(env.HASH_COIN_ADDRESS)) return 0
     const response = await fetchWithRetry(
       API_URLS.COINGECKO.TOKEN_PRICE(env.HASH_COIN_ADDRESS),
       { next: { revalidate: 60 } }
