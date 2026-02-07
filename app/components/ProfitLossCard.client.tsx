@@ -174,7 +174,13 @@ export default function ProfitLossCardClient({
               </linearGradient>
             </defs>
             <XAxis hide={true} />
-            <YAxis hide={true} />
+            <YAxis
+              hide={true}
+              domain={[
+                (dataMin: number) => Math.min(0, dataMin),
+                (dataMax: number) => Math.max(0, dataMax),
+              ]}
+            />
             <Tooltip
               content={
                 <ChartTooltip

@@ -186,11 +186,13 @@ export async function getChartData(
       startBlock = Math.max(0, currentBlock - blocksAgo)
     }
 
+    const chainId = env.NETWORK === 'sepolia' ? 11155111 : 1
     const response = await fetch(
       API_URLS.ETHERSCAN.TRANSACTIONS(
         env.WALLET_PUBLIC_KEY,
         startBlock,
-        env.ETHERSCAN_API_KEY
+        env.ETHERSCAN_API_KEY,
+        chainId
       )
     )
     const data = await response.json()

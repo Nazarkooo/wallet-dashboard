@@ -251,12 +251,11 @@ export async function getETHPrice(): Promise<number> {
 export async function getProfitLoss(timeframe: string) {
   try {
     const chartData = await getChartData(timeframe)
-    const latestValue = chartData[chartData.length - 1]?.value || 0
-    const firstValue = chartData[0]?.value || 0
-    const profitLoss = latestValue - firstValue
-
+    const latestValue = chartData[chartData.length - 1]?.value ?? 0
+    const ethPriceUsd = await getETHPrice()
+    const profitLossUsd = latestValue * ethPriceUsd
     return {
-      value: profitLoss.toFixed(2),
+      value: profitLossUsd.toFixed(2),
       chartData,
     }
   } catch (error) {
@@ -292,16 +291,17 @@ export async function getChartData(
       startBlock = Math.max(0, currentBlock - blocksAgo)
     }
 
+    const chainId = env.NETWORK === 'sepolia' ? 11155111 : 1
     const response = await fetchWithRetry(
       API_URLS.ETHERSCAN.TRANSACTIONS(
         env.WALLET_PUBLIC_KEY,
         startBlock,
-        env.ETHERSCAN_API_KEY
+        env.ETHERSCAN_API_KEY,
+        chainId
       ),
       { next: { revalidate: 60 } }
     )
     const data = await response.json()
-
     if (data.status !== '1' || !data.result) {
       return generateMockChartData(timeframe)
     }
@@ -325,7 +325,7 @@ export async function getChartData(
 
       chartData.push({
         date: new Date(parseInt(tx.timeStamp) * 1000).toISOString(),
-        value: Math.max(0, currentValue),
+        value: currentValue,
         timestamp: parseInt(tx.timeStamp),
       })
     }
