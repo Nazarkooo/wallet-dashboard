@@ -22,18 +22,73 @@ function isUSDTTokenAddress(address: string): boolean {
   return a === USDT_CONTRACT_ADDRESS.toLowerCase()
 }
 
+async function getETHPriceWithChange(): Promise<{ usd: number; change24h: number }> {
+  try {
+    const response = await fetchWithRetry(API_URLS.COINGECKO.ETH_PRICE, {
+      next: { revalidate: 60 },
+    })
+    const data = await response.json()
+    const change = data.ethereum?.usd_24h_change
+    return {
+      usd: data.ethereum?.usd || 0,
+      change24h: typeof change === 'number' ? change : 0,
+    }
+  } catch (error) {
+    console.error('Error getting ETH price:', error)
+    return { usd: 0, change24h: 0 }
+  }
+}
+
+async function getHashCoinPriceWithChange(): Promise<{
+  usd: number
+  change24h: number
+}> {
+  try {
+    if (!env.HASH_COIN_ADDRESS || isUSDTTokenAddress(env.HASH_COIN_ADDRESS))
+      return { usd: 0, change24h: 0 }
+    const response = await fetchWithRetry(
+      API_URLS.COINGECKO.TOKEN_PRICE(env.HASH_COIN_ADDRESS),
+      { next: { revalidate: 60 } }
+    )
+    const data = await response.json()
+    const address = env.HASH_COIN_ADDRESS.toLowerCase()
+    const change = data[address]?.usd_24h_change
+    return {
+      usd: data[address]?.usd || 0,
+      change24h: typeof change === 'number' ? change : 0,
+    }
+  } catch (error) {
+    console.error('Error getting hash coin price:', error)
+    return { usd: 0, change24h: 0 }
+  }
+}
+
 export async function getWalletBalance() {
   try {
     const provider = getProvider()
     const balance = await provider.getBalance(env.WALLET_PUBLIC_KEY)
     const usdtBalance = await getUSDTBalance()
 
-    const previousBalance = parseFloat(usdtBalance) * 0.95
-    const currentBalance = parseFloat(usdtBalance)
-    const dailyChange = currentBalance - previousBalance
+    const [ethPriceWithChange, hashCoinPriceWithChange, hashCoinBalance] =
+      await Promise.all([
+        getETHPriceWithChange(),
+        getHashCoinPriceWithChange(),
+        getHashCoinBalance().catch(() => '0'),
+      ])
+
+    const ethAmount = parseFloat(ethers.formatEther(balance))
+    const tokenAmount = parseFloat(hashCoinBalance)
+    const ethValue = ethAmount * ethPriceWithChange.usd
+    const tokenValue = tokenAmount * hashCoinPriceWithChange.usd
+    const currentNotUSDT = ethValue + tokenValue
+    const eth24h = ethPriceWithChange.change24h
+    const token24h = hashCoinPriceWithChange.change24h
+    const previousNotUSDT =
+      ethValue / (1 + eth24h / 100) + tokenValue / (1 + token24h / 100)
+    const dailyChange = currentNotUSDT - previousNotUSDT
     const dailyChangePercent =
-      previousBalance > 0
-        ? ((dailyChange / previousBalance) * 100).toFixed(1)
+      previousNotUSDT > 0
+        ? ((dailyChange / previousNotUSDT) * 100).toFixed(1)
         : '0.0'
 
     return {
