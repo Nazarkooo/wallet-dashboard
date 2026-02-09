@@ -149,10 +149,13 @@ export default function WalletCardClient({
           <img
             src="/import.svg"
             alt="Import"
-            width={20}
-            height={20}
-            className="w-5 h-5 pr-2"
-            style={{ width: '30px', height: '30px' }}
+            width={30}
+            height={30}
+            className="pr-2"
+            style={{ width: '30px', height: '30px', display: 'block' }}
+            onError={() => {
+              console.error('Failed to load import.svg icon')
+            }}
           />
           <span className="btn-text-white">Deposit</span>
         </motion.button>
