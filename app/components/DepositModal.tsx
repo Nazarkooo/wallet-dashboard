@@ -137,7 +137,7 @@ export default function DepositModal({ isOpen, onClose }: DepositModalProps) {
           pointerEvents: 'auto',
         }}
       >
-        <div className="flex items-center justify-between mb-10">
+        <div className="flex items-center justify-between mb-[15px]">
           <h2 className="font-euclid font-semibold text-3xl text-black">
             Deposit ETH
           </h2>
@@ -150,7 +150,7 @@ export default function DepositModal({ isOpen, onClose }: DepositModalProps) {
           </button>
         </div>
 
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-[10px]">
           {error && (
             <div className="p-4 bg-red-50 rounded-xl">
               <p className="font-euclid text-sm text-red-600">{error}</p>
@@ -158,20 +158,26 @@ export default function DepositModal({ isOpen, onClose }: DepositModalProps) {
           )}
 
           {isLoading && !depositAddress && (
-            <p className="font-euclid text-sm text-gray-500">Loading...</p>
+            <div className="py-10 text-center">
+              <p className="font-euclid text-base text-gray-500">Loading...</p>
+            </div>
           )}
 
           {depositAddress && (
-            <div className="p-4 bg-gray-50 border-2 border-gray-200 rounded-xl space-y-3">
-              <p className="font-euclid text-sm font-medium text-gray-700">
+            <div>
+              <label className="block font-euclid text-sm font-medium text-gray-700 mb-4">
                 Wallet address for deposits
-              </p>
-              <p
-                className="font-mono text-xs text-gray-800 break-all"
-                style={{ wordBreak: 'break-all' }}
+              </label>
+              <div
+                className="w-full font-mono text-base text-black break-all bg-white disabled:opacity-50 focus:outline-none transition-all mb-2.5"
+                style={{
+                  border: '2px solid #d1d5db',
+                  borderRadius: '12px',
+                  padding: '12px 14px',
+                }}
               >
                 {depositAddress}
-              </p>
+              </div>
             </div>
           )}
 
@@ -180,7 +186,31 @@ export default function DepositModal({ isOpen, onClose }: DepositModalProps) {
               <button
                 type="button"
                 onClick={handleCopyAddress}
-                className="flex-1 h-12 rounded-xl bg-[#FF5100] hover:bg-[#ea580c] font-euclid font-medium text-sm text-white transition-colors"
+                style={{
+                  flex: '1 1 0',
+                  height: '44px',
+                  borderRadius: '8px',
+                  gap: '8px',
+                  padding: '7px 12px',
+                  backgroundColor: '#ff5100',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontFamily:
+                    "'Euclid Circular A', Inter, -apple-system, BlinkMacSystemFont, sans-serif",
+                  fontWeight: 500,
+                  fontSize: '14px',
+                  lineHeight: '100%',
+                  letterSpacing: '-0.02em',
+                  textAlign: 'center',
+                  color: '#ffffff',
+                  transition: 'background-color 0.2s',
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.backgroundColor = '#ea580c'
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.backgroundColor = '#ff5100'
+                }}
               >
                 Copy
               </button>
@@ -189,7 +219,34 @@ export default function DepositModal({ isOpen, onClose }: DepositModalProps) {
               type="button"
               onClick={handleClose}
               disabled={isLoading}
-              className="flex-1 h-12 rounded-xl bg-gray-100 hover:bg-gray-200 border border-gray-200 font-euclid font-medium text-sm text-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{
+                flex: '1 1 0',
+                height: '44px',
+                borderRadius: '8px',
+                gap: '8px',
+                padding: '7px 12px',
+                backgroundColor: '#f8f8f8',
+                border: '1px solid #e1e1e1',
+                cursor: isLoading ? 'not-allowed' : 'pointer',
+                fontFamily:
+                  "'Euclid Circular A', Inter, -apple-system, BlinkMacSystemFont, sans-serif",
+                fontWeight: 500,
+                fontSize: '14px',
+                lineHeight: '100%',
+                letterSpacing: '-0.02em',
+                textAlign: 'center',
+                color: '#000000',
+                transition: 'background-color 0.2s',
+                opacity: isLoading ? 0.5 : 1,
+              }}
+              onMouseEnter={e => {
+                if (!isLoading) {
+                  e.currentTarget.style.backgroundColor = '#f0f0f0'
+                }
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.backgroundColor = '#f8f8f8'
+              }}
             >
               Close
             </button>
