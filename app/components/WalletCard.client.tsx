@@ -168,11 +168,11 @@ export default function WalletCardClient({
           }}
         >
           <img
-            src="/import.svg"
+            src="/export.svg"
             alt="Export"
             width={20}
             height={20}
-            className="w-5 h-5 pr-2 rotate-180 brightness-0"
+            className="w-5 h-5 pr-2"
             style={{ width: '30px', height: '30px' }}
           />
           <span className="btn-text-black">Withdraw</span>
