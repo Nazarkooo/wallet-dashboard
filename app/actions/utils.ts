@@ -13,8 +13,7 @@ import type { ChartDataPoint } from '@/app/types'
 
 validateEnv()
 
-const USDT_CONTRACT_ADDRESS =
-  '0xdAC17F958D2ee523a2206206994597C13D831ec7'
+const USDT_CONTRACT_ADDRESS = '0xdAC17F958D2ee523a2206206994597C13D831ec7'
 
 function isUSDTTokenAddress(address: string): boolean {
   if (!address) return true
@@ -22,7 +21,10 @@ function isUSDTTokenAddress(address: string): boolean {
   return a === USDT_CONTRACT_ADDRESS.toLowerCase()
 }
 
-async function getETHPriceWithChange(): Promise<{ usd: number; change24h: number }> {
+async function getETHPriceWithChange(): Promise<{
+  usd: number
+  change24h: number
+}> {
   try {
     const response = await fetchWithRetry(API_URLS.COINGECKO.ETH_PRICE, {
       next: { revalidate: 60 },
@@ -154,8 +156,7 @@ export async function getPortfolioValue() {
     const ethValue = parseFloat(ethers.formatEther(ethBalance)) * ethPrice
     const hashCoinValue = parseFloat(hashCoinBalance) * hashCoinPrice
     const notUSDT = (ethValue + hashCoinValue).toFixed(2)
-    const totalBalance =
-      parseFloat(usdtBalance) + ethValue + hashCoinValue
+    const totalBalance = parseFloat(usdtBalance) + ethValue + hashCoinValue
     const usdtPlusPortfolio = totalBalance.toFixed(2)
 
     return {

@@ -56,7 +56,11 @@ export default function DepositModal({ isOpen, onClose }: DepositModalProps) {
   }, [isOpen, mounted])
 
   const handleCopyAddress = () => {
-    if (depositAddress && typeof navigator !== 'undefined' && navigator.clipboard) {
+    if (
+      depositAddress &&
+      typeof navigator !== 'undefined' &&
+      navigator.clipboard
+    ) {
       navigator.clipboard.writeText(depositAddress)
     }
   }

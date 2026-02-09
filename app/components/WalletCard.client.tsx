@@ -28,7 +28,7 @@ export default function WalletCardClient({
             transition={{ type: 'spring', stiffness: 300 }}
           >
             <img
-              src="/Group 83.svg"
+              src="/wallet-icon.svg"
               alt="Wallet Icon"
               width={40}
               height={40}
@@ -56,7 +56,7 @@ export default function WalletCardClient({
                   className="flex items-center justify-center bg-transparent border-none cursor-pointer p-0"
                 >
                   <img
-                    src="/edit-2.svg"
+                    src="/edit.svg"
                     alt="Edit"
                     width={16}
                     height={16}
@@ -106,7 +106,7 @@ export default function WalletCardClient({
             {dailyChange.amount}
           </span>
           <img
-            src="/Vector.svg"
+            src="/arrow.svg"
             alt="Arrow"
             width={12}
             height={12}
@@ -147,7 +147,7 @@ export default function WalletCardClient({
           }}
         >
           <img
-            src="/Import.svg"
+            src="/import.svg"
             alt="Import"
             width={20}
             height={20}
@@ -168,7 +168,7 @@ export default function WalletCardClient({
           }}
         >
           <img
-            src="/Import.svg"
+            src="/import.svg"
             alt="Export"
             width={20}
             height={20}

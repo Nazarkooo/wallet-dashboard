@@ -80,7 +80,7 @@ export default function ProfitLossCardClient({
       <div className="flex items-start justify-between">
         <div className="flex items-center">
           <img
-            src="/Vector.svg"
+            src="/arrow.svg"
             alt="Arrow"
             width={12}
             height={12}
@@ -95,7 +95,7 @@ export default function ProfitLossCardClient({
             Profit/Loss
           </span>
           <img
-            src="/profit-dowload.svg"
+            src="/profit-download.svg"
             alt="Download"
             width={16}
             height={16}
